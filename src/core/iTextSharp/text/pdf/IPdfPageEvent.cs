@@ -180,5 +180,7 @@ namespace iTextSharp.text.pdf {
          * @param text the text of the tag
          */
         void OnGenericTag(PdfWriter writer, Document document, Rectangle rect, string text);
+
+		void OnLocalDestination(PdfWriter writer, Document document, PdfDestination dest, string text);
     }
 }

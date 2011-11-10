@@ -277,5 +277,11 @@ namespace iTextSharp.text.pdf.events {
                 eventa.OnGenericTag(writer, document, rect, text);
             }
         }
+        public virtual void OnLocalDestination(PdfWriter writer, Document document, PdfDestination dest, string text) {
+            foreach (IPdfPageEvent eventa in events) {
+                eventa.OnLocalDestination(writer, document, dest, text);
+            }
+        }
+        
     }
 }

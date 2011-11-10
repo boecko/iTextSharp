@@ -193,5 +193,10 @@ namespace iTextSharp.text.pdf {
          */
         public virtual void OnGenericTag(PdfWriter writer,Document document,Rectangle rect,string text) {
         }
+        
+        public virtual void OnLocalDestination(PdfWriter writer, Document document, PdfDestination dest, string text) {
+        }
+        
+        
     }
 }

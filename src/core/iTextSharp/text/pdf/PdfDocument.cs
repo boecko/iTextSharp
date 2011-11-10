@@ -1343,7 +1343,13 @@ namespace iTextSharp.text.pdf {
                                 subtract = 0;
                             if (nextChunk == null)
                                 subtract += hangingCorrection;
-                            LocalDestination((String)chunk.GetAttribute(Chunk.LOCALDESTINATION), new PdfDestination(PdfDestination.XYZ, xMarker, yMarker + fontSize, 0));
+							PdfDestination dest = new PdfDestination(PdfDestination.XYZ, xMarker, yMarker + fontSize, 0);
+                            LocalDestination((String)chunk.GetAttribute(Chunk.LOCALDESTINATION), dest);
+                            IPdfPageEvent pev = writer.PageEvent;
+                            if (pev != null) {
+								//System.Console.Out.WriteLine("LOCALDESTINATION " + pev);
+                                pev.OnLocalDestination(writer, this, dest, (String)chunk.GetAttribute(Chunk.LOCALDESTINATION));
+							}
                         }
                         if (chunk.IsAttribute(Chunk.GENERICTAG)) {
                             float subtract = lastBaseFactor;
