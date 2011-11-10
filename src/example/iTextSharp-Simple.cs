@@ -14,8 +14,9 @@
 
 using iTextSharp.text;
 using iTextSharp.text.pdf;
-
-[assembly: System.Reflection.AssemblyVersion("1.0.1.0")]
+using System;
+using System.IO;
+using System.Collections.Generic;
 
 namespace iTextSharpExamples 
 {
@@ -25,21 +26,40 @@ public class Simple
 
   public static void Main() 
   {
-    try {
+
+
+	  string Filename= "test.pdf";
+	  Dictionary<string,int> dict = new Dictionary<string, int>();
+	  //dict["fop"] = 1;
+	  Stream fileStream ;
+	  Console.Out.WriteLine("Eintraege: " + dict.Values.Count);
+	  fileStream = new System.IO.FileStream("foo.pdf", System.IO.FileMode.Create);
+	  doPDF(fileStream, dict);
+
+	  Console.Out.WriteLine("Eintraege: " + dict.Values.Count);
+	  fileStream = new System.IO.FileStream(Filename, System.IO.FileMode.Create);
+	  doPDF(fileStream, dict);
+
+      System.Diagnostics.Process p; 
+      p= new System.Diagnostics.Process();
+      p.StartInfo.FileName= Filename;
+      p.StartInfo.RedirectStandardOutput = false;
+      p.StartInfo.UseShellExecute = true;
+      p.Start();
+
+  }
+	public  static void doPDF(Stream stream, Dictionary<string, int> dict)
+  {
+   try {
       string assemblyName= System.IO.Path.GetFileName(System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase.ToString()); 
       string assemblyVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
-      System.Random rnd= new System.Random(); 
 
       // step 1: create a document
       iTextSharp.text.Document document = new iTextSharp.text.Document();
       // step 2: we set the ContentType and create an instance of the Writer
-      int pid= System.Diagnostics.Process.GetCurrentProcess().Id;
-      //string Filename= System.String.Format("{0}-{1}-{2}.pdf", assemblyName, pid, rnd.Next(1000));
-	  string Filename= "test.pdf";
-      PdfWriter writer = iTextSharp.text.pdf.PdfWriter.GetInstance(document, 
-																   new System.IO.FileStream(Filename, System.IO.FileMode.Create), new MyDocListener());
+      PdfWriter writer = iTextSharp.text.pdf.PdfWriter.GetInstance(document, stream); 
 
-	  writer.PageEvent = new MyPdfPageEventHelper();
+	  writer.PageEvent = new MyPdfPageEventHelper(dict);
 	  /*
       PdfWriter writer = iTextSharp.text.pdf.PdfWriter.GetInstance(document, 
 			    new System.IO.FileStream(Filename, System.IO.FileMode.Create));
@@ -69,9 +89,12 @@ public class Simple
       document.Add(new iTextSharp.text.Paragraph("\n"));
       document.Add(new iTextSharp.text.Paragraph("This PDF document was generated dynamically: "));
       iTextSharp.text.List list= new iTextSharp.text.List(false, 20);  // true= ordered, false= unordered
-	  Chunk cc = new Chunk("foobar");
-	  cc.SetLocalGoto("meins");
-	  //cc.SetLocalDestination("fooooo");
+	  Chunk cc = CreateLocalGotoToChunk("\n\nSpringt zu Seite $page\n\n", "marker_page_2", dict);
+
+	  document.Add(cc);
+
+	  cc = CreateLocalGotoToChunk("\n\nSpringt zu Seite $page\n\n", "marker_page_4", dict);
+
 	  document.Add(cc);
       list.ListSymbol = bullet;       // use "bullet" as list symbol
       list.Add(new iTextSharp.text.ListItem("on " + System.DateTime.Now.ToString("dddd, MMM d, yyyy")));
@@ -85,14 +108,14 @@ public class Simple
       string v1= "(none)"; 
       string v2= "(none)";
       try {
-	v1=  list.GetType().Assembly.GetName().Version.ToString();
-	v2=  list.GetType().Assembly.ImageRuntimeVersion;
+		  v1=  list.GetType().Assembly.GetName().Version.ToString();
+		  v2=  list.GetType().Assembly.ImageRuntimeVersion;
       }
       catch (System.Exception e1) {v1 = e1.ToString();}
       
       iTextSharp.text.ListItem li=  new iTextSharp.text.ListItem(System.String.Format("iTextSharp v{0} (compiled with .NET {1}) see ", v1,v2));
       iTextSharp.text.Anchor anchor = 
-	new iTextSharp.text.Anchor("http://itextsharp.sourceforge.net/", fontAnchor); 
+		  new iTextSharp.text.Anchor("http://itextsharp.sourceforge.net/", fontAnchor); 
       anchor.Reference = "http://itextsharp.sourceforge.net";
       //anchor.Name = "website"; 
 
@@ -103,25 +126,25 @@ public class Simple
       document.Add(list);
 	  document.NewPage();
 
-	  Chunk cc2 = new Chunk("foobar2").SetLocalDestination("meins");
+	  Chunk cc2 = new Chunk("Ich bin auf Seite 2").SetLocalDestination("marker_page_2");
 	  
 
 
 	  document.Add(cc2);
+	  document.NewPage();
+	  document.Add(new Paragraph("\n"));
+	  document.NewPage();
+
+	  Chunk cc3 = new Chunk("Ich bin auf Seite 4").SetLocalDestination("marker_page_4");
+	  
+
+	  document.Add(cc3);
 
 	  
       // step 6: Close document
 
       document.Close();
-      System.Console.Out.WriteLine("Hallo Welt");
 	  
-      System.Diagnostics.Process p; 
-      p= new System.Diagnostics.Process();
-      p.StartInfo.FileName= Filename;
-      p.StartInfo.RedirectStandardOutput = false;
-      p.StartInfo.UseShellExecute = true;
-
-      p.Start();
     } 
     catch (iTextSharp.text.DocumentException ex) 
     {
@@ -132,76 +155,40 @@ public class Simple
     
 
   }
+
+   static Chunk CreateLocalGotoToChunk(string text, string marker, Dictionary<string,int> dict)
+   {
+	  if(dict.ContainsKey(marker))
+		  {
+			  Console.Out.WriteLine("foobar");
+			  text = text.Replace("$page", dict[marker].ToString());
+		  }
+	  Chunk cc = new Chunk(text);
+	  cc.SetLocalGoto(marker);
+	  return cc;
+   }
 }
 
 
     public class MyPdfPageEventHelper : PdfPageEventHelper  {
 
-        public  void OnStartPage(PdfWriter writer,Document document) {
-				System.Console.Out.WriteLine("Document " );
+		Dictionary<string,int> dict = null;
+		public  MyPdfPageEventHelper(Dictionary<string,int> dict)
+			{
+				
+				this.dict = dict;
+			}
+        public override void OnStartPage(PdfWriter writer,Document document) {
+			//System.Console.Out.WriteLine("OnStartPage " );
 				
         }
-		
-	}
-	public class MyDocListener : IDocListener
-	{
 
-        public void Open()
-			{
-				
-			}
-    
-        public void Close()
-			{
-				
-			}
-
-        public bool NewPage()
-			{
-				System.Console.Out.WriteLine("NewPage");
-				return false;
-			}
-        public bool SetPageSize(Rectangle pageSize)
-			{
-				return true;
-			}
-
-        public bool SetMargins(float marginLeft, float marginRight, float marginTop, float marginBottom)
-			{
-				return true;
-			}
-
-		public bool SetMarginMirroring(bool marginMirroring)
-			{
-				return true;
-			}
-
-        public bool SetMarginMirroringTopBottom(bool marginMirroringTopBottom)
-			{
-				return true;
-			}
-
-        public int PageCount {
-            set
-				{
-					
-				}
+        public override void OnLocalDestination(PdfWriter writer, Document document, PdfDestination dest, string marker) {
+			Console.Out.WriteLine("OnLocalDestination text:" + marker + " writer.CurrentPageNumber: " + writer.CurrentPageNumber );
+			dict[marker] = writer.CurrentPageNumber;
         }
-        public void ResetPageCount()
-			{
-				
-			}
+
 		
-		public bool Add(IElement element)
-			{
-				System.Console.Out.WriteLine("Element " + element.Type);
-				return true;
-			}
-
-		public void Dispose()
-			{
-
-			}
 	}
 
 }
