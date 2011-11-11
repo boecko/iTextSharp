@@ -1,0 +1,10 @@
+The branch feat_destinationpagenumber is a modification of the orginial code
+
+iTextSharp.text.pdf.IPdfPageEvent has an additional method
+
+OnLocalDestination(PdfWriter writer, Document document, PdfDestination dest, string text);
+
+See src/example/iTextSharp-Simple.cs how it is used.
+
+Hint: LocalDestination with PageNumbers
+
